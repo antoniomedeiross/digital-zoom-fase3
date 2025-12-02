@@ -17,10 +17,8 @@ A aplicação permite ao usuário carregar imagens BMP, selecionar algoritmos de
 * [Arquitetura do Sistema](#arquitetura-do-sistema)
 * [Funcionalidades](#funcionalidades)
 * [Estrutura do Código](#estrutura-do-código)
-* [Formato BMP](#formato-bmp)
 * [Fluxo de Operação](#fluxo-de-operação)
 * [Interface do Usuário](#interface-do-usuário)
-* [Compilação e Execução](#compilação-e-execução)
 * [Requisitos Atendidos](#requisitos-atendidos)
 * [Limitações e Trabalhos Futuros](#limitações-e-trabalhos-futuros)
 * [Referências](#referências)
@@ -179,95 +177,6 @@ void api_media_0_25x(void);      // Média 0.25x
 
 ---
 
-## Formato BMP
-
-### Estrutura de um Arquivo BMP
-
-```
-┌─────────────────────────────────────┐
-│  1. BMP HEADER (14 bytes)           │ ← Identificação do arquivo
-├─────────────────────────────────────┤
-│  2. INFO HEADER (40 bytes)          │ ← Dimensões e formato
-├─────────────────────────────────────┤
-│  3. PALETA DE CORES (256×4 bytes)   │ ← Opcional (8-bit)
-├─────────────────────────────────────┤
-│  4. DADOS DOS PIXELS                │ ← Imagem (bottom-up)
-└─────────────────────────────────────┘
-```
-
-### Headers do BMP
-
-#### BMP Header (14 bytes)
-```c
-typedef struct {
-    uint16_t tipo;        // 0x4D42 = "BM"
-    uint32_t tamanho;     // Tamanho total do arquivo
-    uint16_t reservado1;  // 0
-    uint16_t reservado2;  // 0
-    uint32_t offset;      // Posição dos dados de pixel
-} BMPHeader;
-```
-
-#### Info Header (40 bytes)
-```c
-typedef struct {
-    uint32_t tamanho;           // 40 bytes
-    int32_t  largura;           // Largura em pixels
-    int32_t  altura;            // Altura (+ = bottom-up)
-    uint16_t planos;            // Sempre 1
-    uint16_t bits_por_pixel;    // 8 ou 24
-    uint32_t compressao;        // 0 = sem compressão
-    uint32_t tamanho_imagem;
-    // ... outros campos
-} BMPInfoHeader;
-```
-
-### Processamento de Pixels
-
-#### 1. Padding
-BMPs requerem que cada linha seja múltiplo de 4 bytes:
-```c
-int padding = (4 - (largura_bytes % 4)) % 4;
-```
-
-**Exemplo:** Imagem 160x120, 8 bits/pixel
-- 160 bytes por linha
-- 160 % 4 = 0 → **Sem padding necessário**
-
-#### 2. Ordem Invertida
-BMPs armazenam pixels de baixo para cima:
-```c
-for (y = 0; y < altura; y++) {
-    int linha_destino = (altura - 1 - y);  // Inverte
-    fread(linha, 1, largura + padding, arquivo);
-    memcpy(&buffer[linha_destino * largura], linha, largura);
-}
-```
-
-#### 3. Conversão RGB → Escala de Cinza
-Para imagens de 24 bits:
-```c
-// Fórmula ITU-R BT.601 (ponderada pela sensibilidade humana)
-unsigned char gray = (unsigned char)(
-    0.299 * r +  // Red (30%)
-    0.587 * g +  // Green (59%) - maior peso
-    0.114 * b    // Blue (11%)
-);
-```
-
-### Acesso Matricial
-
-Transformação de coordenadas 2D para índice linear:
-```c
-// Pixel na posição (x, y)
-unsigned char pixel = buffer[y * IMG_WIDTH + x];
-
-// Exemplo: pixel (50, 30) em imagem 160x120
-int index = 30 * 160 + 50 = 4850;
-```
-
----
-
 ## Fluxo de Operação
 
 ### Pipeline Completo de Processamento
@@ -397,72 +306,6 @@ Ciclo 4:  └──     (médio)
 
 ---
 
-## Compilação e Execução
-
-### Pré-requisitos
-
-1. **Hardware:**
-   - Placa DE1-SoC com Linux embarcado
-   - Monitor VGA conectado
-   - Mouse USB conectado
-
-2. **Software:**
-   - GCC ARM cross-compiler ou nativo
-   - GNU Make
-   - Arquivo BMP de teste (160x120, 8-bit)
-
-### Estrutura de Arquivos
-
-```
-projeto/
-├── main.c              # Aplicação principal
-├── bitmap.c            # Manipulação de BMP
-├── bitmap.h            # Header do bitmap
-├── coprocessador.s     # API Assembly (Etapa 2)
-├── coprocessador.h     # Interface da API
-├── Makefile            # Script de compilação
-└── imagem_teste.bmp    # Imagem de exemplo
-```
-
-### Compilação
-
-```bash
-# Método 1: Usando Makefile
-make
-
-# Método 2: Compilação manual
-arm-linux-gnueabihf-gcc -o zoom_app \
-    main.c bitmap.c coprocessador.s \
-    -O2 -march=armv7-a -mfpu=neon \
-    -Wall -Wextra
-```
-
-### Execução
-
-```bash
-# Na placa DE1-SoC
-sudo ./zoom_app imagem_teste.bmp
-
-# Motivo do sudo: necessário para acessar /dev/input/event0 (mouse)
-```
-
-### Configuração do Mouse
-
-Se o mouse não funcionar, identifique o dispositivo correto:
-
-```bash
-# Listar dispositivos de entrada
-ls -l /dev/input/
-
-# Testar eventos
-sudo cat /dev/input/event0
-
-# Dar permissões (alternativa ao sudo)
-sudo chmod 666 /dev/input/event*
-```
-
----
-
 ## Requisitos Atendidos
 
 ### Etapa 2 (API Assembly)
@@ -516,111 +359,15 @@ sudo chmod 666 /dev/input/event*
 #### Alta Prioridade
 - [ ] Implementar composição sobre imagem original (opcional)
 - [ ] Adicionar suporte para múltiplas janelas simultâneas
-- [ ] Permitir redimensionamento da janela após seleção
 
 #### Média Prioridade
 - [ ] Salvar resultado processado em arquivo BMP
-- [ ] Histórico de operações (undo/redo)
-- [ ] Pré-visualização em miniatura
 - [ ] Suporte para imagens coloridas (RGB)
 
 #### Baixa Prioridade
-- [ ] Interface gráfica (GUI) com framebuffer
 - [ ] Zoom contínuo (não apenas níveis discretos)
 - [ ] Filtros adicionais (blur, sharpen, edge detection)
 - [ ] Benchmark de desempenho de cada algoritmo
-
----
-
-## Exemplo de Uso Completo
-
-### Cenário: Ampliar Rosto em Foto de Grupo
-
-```bash
-# 1. Iniciar aplicação
-sudo ./zoom_app foto_grupo.bmp
-
-# 2. No terminal, aparece:
-# "Posição do Mouse: (0, 0)"
-# "Zoom Atual: 1.00x"
-
-# 3. Mover mouse até canto superior esquerdo do rosto
-# Terminal atualiza: "Mouse: (45, 30)"
-
-# 4. Clicar botão esquerdo
-# Terminal: "✓ Primeiro canto definido: (45, 30)"
-
-# 5. Mover mouse até canto inferior direito
-# Terminal: "Mouse: (85, 70)"
-
-# 6. Clicar botão esquerdo novamente
-# Terminal: "✓ Segundo canto definido: (85, 70)"
-# Terminal: "✓ Janela ativada!"
-
-# 7. Pressionar [2] para selecionar Replicação
-# Terminal: "Algoritmo alterado: Replicação"
-
-# 8. Pressionar [+] para zoom 2x
-# Terminal: "[PROCESSAMENTO] Aplicando zoom 2.00x"
-# Terminal: "na região (45,30) até (85,70) [40x40]"
-# Terminal: "Algoritmo: Replicação 2X (região)"
-# Terminal: "[OK] Processamento concluído!"
-
-# 9. VGA mostra: região ampliada centralizada em fundo preto
-
-# 10. Pressionar [+] novamente para zoom 4x
-# Terminal: "Aplicando zoom 4.00x"
-# VGA: rosto ainda mais ampliado (isolado)
-
-# 11. Pressionar [-] para voltar a 2x
-# 12. Pressionar [R] para resetar e processar imagem completa
-# 13. Pressionar [Q] para sair
-```
-
----
-
-## Resolução de Problemas
-
-### Mouse não responde
-```bash
-# Verificar permissões
-ls -l /dev/input/event0
-# Se: crw------- → sem permissão
-
-# Solução 1: rodar com sudo
-sudo ./zoom_app imagem.bmp
-
-# Solução 2: adicionar permissões
-sudo chmod 666 /dev/input/event*
-```
-
-### Imagem não carrega
-```bash
-# Verificar formato
-file imagem.bmp
-# Deve ser: PC bitmap, Windows 3.x format, 160 x 120 x 8
-
-# Converter se necessário (no PC, antes de transferir)
-convert imagem.png -resize 160x120! -type Grayscale BMP3:imagem.bmp
-```
-
-### Erro "Falha ao alocar memória"
-```bash
-# Verificar memória disponível
-free -h
-
-# Se RAM baixa, fechar outros processos
-killall -9 processo_pesado
-```
-
-### VGA não exibe nada
-```bash
-# Verificar se coprocessador foi inicializado
-dmesg | grep fpga
-
-# Verificar mapeamento de memória
-cat /proc/iomem | grep ff200000
-```
 
 ---
 
@@ -657,8 +404,13 @@ Este projeto foi desenvolvido como parte da disciplina de Sistemas Digitais da U
 
 ## Autores
 
-* **Equipe:** [Antonio Medeiros, Allany Victória, Allison Wilker]
-* **Professor:** [Wild Freitas]
+* **Equipe:**
+    <p align="left">
+      <a href="https://github.com/antoniomedeiross"> <img src="https://github.com/antoniomedeiross.png" width="80" style="border-radius: 50%;" /> </a> 
+      <a href="https://github.com/allanyvictoria"> <img src="https://github.com/allanyvictoria.png" width="80" style="border-radius: 50%; margin-left: 10px;" /> </a> 
+      <a href="https://github.com/alissonwilker02"> <img src="https://github.com/alissonwilker02.png" width="80" style="border-radius: 50%; margin-left: 10px;" /> </a> 
+    </p>
+* **Professor:** Wild Freitas
 * **Semestre:** 2025.2
 
 ---

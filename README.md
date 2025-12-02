@@ -8,7 +8,7 @@ A aplicação permite ao usuário carregar imagens BMP, selecionar algoritmos de
 
 ### 🔗 Repositórios das Etapas Anteriores
 * **[Etapa 1 - Hardware em Verilog](https://github.com/antoniomedeiross/image_processing_fpga)**
-* **[Etapa 2 - Driver em Assembly](https://github.com/antoniomedeiross/zoom-hps-driver)**
+* **[Etapa 2 - Driver em Assembly](https://github.com/antoniomedeiross/digital-zoom-hps-driver)**
 
 ---
 

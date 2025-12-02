@@ -28,38 +28,7 @@ A aplicação permite ao usuário carregar imagens BMP, selecionar algoritmos de
 ## Arquitetura do Sistema
 
 A aplicação em C serve como camada de mais alto nível na arquitetura do projeto, integrando todos os componentes desenvolvidos nas etapas anteriores:
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                  APLICAÇÃO C (main.c)                   │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   Interface  │  │  Controle de │  │ Processamento│  │
-│  │   Usuário    │  │    Mouse     │  │  de Imagem   │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              API ASSEMBLY (coprocessador.s)             │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │  ISA do Coprocessador (9 funções de zoom)       │   │
-│  └──────────────────────────────────────────────────┘   │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│           PONTE HPS-FPGA (Memory Mapped I/O)            │
-└─────────────────────────┬───────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              COPROCESSADOR FPGA (Verilog)               │
-│  ┌──────────┐  ┌──────────┐  ┌──────────────────────┐  │
-│  │   ROM    │  │   ALU    │  │    VGA Driver        │  │
-│  │ (160x120)│→ │ Algoritmos│→│   (640x480@60Hz)    │  │
-│  └──────────┘  └──────────┘  └──────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
-```
+![diagrama](img/diagrama1.png)
 
 ---
 

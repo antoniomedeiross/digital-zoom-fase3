@@ -19,6 +19,7 @@ A aplicação permite ao usuário carregar imagens BMP, selecionar algoritmos de
 * [Estrutura do Código](#estrutura-do-código)
 * [Fluxo de Operação](#fluxo-de-operação)
 * [Interface do Usuário](#interface-do-usuário)
+* [Sistema de Interação com Mouse e Seleção de Janela](#sistema-de-interação-com-mouse-e-seleção-de-janela)
 * [Requisitos Atendidos](#requisitos-atendidos)
 * [Limitações e Trabalhos Futuros](#limitações-e-trabalhos-futuros)
 * [Referências](#referências)
@@ -256,14 +257,6 @@ Janela de Zoom:
 - Cor branca com borda preta para visibilidade
 - Tamanho configurável (`CURSOR_SIZE = 5`)
 
-#### Retângulo de Seleção
-```
-╔═══════════════╗
-║               ║  ← Espessura: 2 pixels
-║   REGIÃO      ║
-║  SELECIONADA  ║
-╚═══════════════╝
-```
 
 #### Animação do Primeiro Canto
 ```
@@ -272,9 +265,95 @@ Ciclo 2:  └──     (médio)
 Ciclo 3:  └───    (grande)
 Ciclo 4:  └──     (médio)
 ```
+---
+## Sistema de Interação com Mouse e Seleção de Janela
+### Funcionamento do Rastreio do Mouse
+
+O mouse envia **movimentos relativos**, como “mova +5 no eixo X”.  
+O código acumula esses deslocamentos para obter a posição absoluta do cursor:
+
+```c
+if (ev.type == EV_REL) {
+    if (ev.code == REL_X)
+        estado.mouse_x += ev.value;
+    else if (ev.code == REL_Y)
+        estado.mouse_y += ev.value;
+}
+```
+
+mouse_x e mouse_y guardam a posição acumulada.
+
+Há um clamping para não sair da área 160×120.
+
+Nenhum sistema gráfico externo controla o cursor — é totalmente desenhado em software.
 
 ---
+### Como a Seleção de Janela Funciona (Máquina de Estados)
 
+A seleção usa um pequeno state machine:
+
+| Estado | Significado                      |
+|--------|----------------------------------|
+|   0    | Nenhum ponto selecionado         |
+|   1    | Primeiro canto selecionado        |
+|   2    | Janela completa, dois pontos definidos |
+
+**Primeiro clique → salva (x1, y1)**
+```c
+estado.janela.x1 = estado.mouse_x;
+estado.janela.y1 = estado.mouse_y;
+estado.janela.pontos_definidos = 1;
+```
+**Segundo clique → salva (x2, y2)**
+```c
+estado.janela.x2 = estado.mouse_x;
+estado.janela.y2 = estado.mouse_y;
+estado.janela.pontos_definidos = 2;
+estado.janela.ativo = 1;
+normalizar_janela(&estado.janela);
+```
+
+A normalização garante que (x1,y1) seja o canto superior-esquerdo da janela, independentemente da ordem dos cliques.
+
+---
+### Como o Desenho do Frame Funciona
+
+- Copia a imagem original para o buffer de exibição.
+- Se apenas o primeiro ponto foi selecionado:
+  - desenha marcadores visuais no primeiro canto.
+- Desenha o cursor por último, sempre acima de tudo
+
+O cursor é desenhado com borda preta para ser visível em qualquer fundo.
+
+No final, o frame é enviado para a FPGA:
+```c
+carregar_imagem(estado->imagem_atual, IMG_SIZE);
+```
+
+---
+### Viabilidade do cursor via software 
+
+A resolução utilizada é:
+
+**160 × 120 = 19.200 bytes por frame (~19 KB)**
+
+Considerando uma taxa de **30 FPS**, temos:
+
+19.200 bytes × 30 FPS = 576.000 bytes/s ≈ 0,5 MB/s
+
+A interface de comunicação HPS–FPGA presente na placa DE1-SoC suporta **larguras de banda na ordem de dezenas a centenas de megabytes por segundo**.
+
+Dessa forma, **o envio completo do frame a cada atualização não representa qualquer gargalo significativo**, sendo computacionalmente trivial para o sistema.
+
+Consequentemente, não se fez necessário:
+
+- Implementar sprites em hardware na FPGA;
+- Realizar operações de blending em Verilog;
+- Empregar mecanismos de DMA específicos para otimização.
+
+Dado esse cenário, a abordagem de **software rendering** mostra-se suficientemente eficiente, mantendo simplicidade na implementação sem comprometer o desempenho.
+
+---
 ## Requisitos Atendidos
 
 ### Etapa 2 (API Assembly)

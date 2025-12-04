@@ -402,21 +402,6 @@ Dado esse cenário, a abordagem de **software rendering** mostra-se suficienteme
    - Replicação: apenas zoom in (2x, 4x)
    - *Solução:* Sistema valida e avisa o usuário
 
-### Melhorias Futuras
-
-#### Alta Prioridade
-- [ ] Implementar composição sobre imagem original (opcional)
-- [ ] Adicionar suporte para múltiplas janelas simultâneas
-
-#### Média Prioridade
-- [ ] Salvar resultado processado em arquivo BMP
-- [ ] Suporte para imagens coloridas (RGB)
-
-#### Baixa Prioridade
-- [ ] Zoom contínuo (não apenas níveis discretos)
-- [ ] Filtros adicionais (blur, sharpen, edge detection)
-- [ ] Benchmark de desempenho de cada algoritmo
-
 ---
 
 ## Referências

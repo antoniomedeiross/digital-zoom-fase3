@@ -382,7 +382,7 @@ Dado esse cenário, a abordagem de **software rendering** mostra-se suficienteme
 
 ---
 
-## Limitações e Trabalhos Futuros
+## Limitações
 
 ### Decisões de Design
 
@@ -390,7 +390,7 @@ Dado esse cenário, a abordagem de **software rendering** mostra-se suficienteme
    - **Abordagem atual:** Região processada é exibida centralizada em fundo preto
    - **Vantagem:** Visualização isolada facilita análise da área de interesse
    - **Alternativa não implementada:** Composição sobre imagem original
-   - **Justificativa:** Simplifica o pipeline e evita necessidade de recuperar dados da FPGA
+   - **Justificativa:** Simplifica o processo e evita necessidade de recuperar dados da FPGA
 
 2. **Restrição de Seleção de Janela**
    - Janela só pode ser selecionada em modo 1x (bypass)
